@@ -20,7 +20,7 @@ input_feature_cols = bundle["input_feature_cols"]
 uni_selected_cols = bundle["uni_selected_cols"]
 corr_selected_cols = bundle["corr_selected_cols"]
 
-# ===== 这里手动指定网页只显示的 6 个最终变量 =====
+# ===== 这里只保留最终网页显示的 6 个变量 =====
 DISPLAY_COLS = [
     "Lymphocytes",
     "Na",
@@ -37,15 +37,14 @@ for col in DISPLAY_COLS:
     user_input[col] = st.number_input(col, value=0.0, format="%.4f")
 
 if st.button("Predict"):
-    # 先构造一个“完整原始输入框架”
-    # 所有训练时原始输入列都保留，默认先设为缺失
+    # 先构造训练时完整原始输入框架，其余变量用缺失占位
     raw_df = pd.DataFrame([{col: np.nan for col in input_feature_cols}])
 
-    # 再把网页输入的 6 个变量填进去
+    # 填入网页上这 6 个变量
     for col in DISPLAY_COLS:
         raw_df.loc[0, col] = user_input[col]
 
-    # 按训练流程继续处理
+    # 按训练时相同流程处理
     x = raw_df[uni_selected_cols].copy()
     x = x[corr_selected_cols].copy()
 
