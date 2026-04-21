@@ -16,7 +16,11 @@ boruta_support = bundle["boruta_support"]
 scaler_rfe = bundle["scaler_rfe"]
 rfecv_support = bundle["rfecv_support"]
 
-# ===== 这里手动指定你最终模型的 6 个变量 =====
+input_feature_cols = bundle["input_feature_cols"]
+uni_selected_cols = bundle["uni_selected_cols"]
+corr_selected_cols = bundle["corr_selected_cols"]
+
+# ===== 这里手动指定网页只显示的 6 个最终变量 =====
 DISPLAY_COLS = [
     "Lymphocytes",
     "Na",
@@ -29,23 +33,28 @@ DISPLAY_COLS = [
 st.write("Please enter the required variables below:")
 
 user_input = {}
-
 for col in DISPLAY_COLS:
     user_input[col] = st.number_input(col, value=0.0, format="%.4f")
 
 if st.button("Predict"):
-    raw_df = pd.DataFrame([user_input])
+    # 先构造一个“完整原始输入框架”
+    # 所有训练时原始输入列都保留，默认先设为缺失
+    raw_df = pd.DataFrame([{col: np.nan for col in input_feature_cols}])
 
-    # 按最终 6 个变量进入预处理
-    x = raw_df[DISPLAY_COLS].copy()
+    # 再把网页输入的 6 个变量填进去
+    for col in DISPLAY_COLS:
+        raw_df.loc[0, col] = user_input[col]
 
-    # 预处理流程
+    # 按训练流程继续处理
+    x = raw_df[uni_selected_cols].copy()
+    x = x[corr_selected_cols].copy()
+
     x_pre = preprocessor.transform(x)
     x_boruta = np.array(x_pre)[:, boruta_support]
     x_scaled = scaler_rfe.transform(x_boruta)
     x_sel = x_scaled[:, rfecv_support]
 
-    # 预测概率
+    # 预测
     if hasattr(best_model, "predict_proba"):
         prob = best_model.predict_proba(x_sel)[0, 1]
     else:
